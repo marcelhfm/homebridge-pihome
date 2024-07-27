@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "PiHome",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -9,8 +9,14 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
-      }
+        "default": "PiHome Platform"
+      },
+			"pihomeApiUrl": {
+				"title": "PiHome API Url",
+				"type": "string",
+				"required": true,
+				"default": "http://pihome.hofmania.home"
+			}
     }
   }
 }
