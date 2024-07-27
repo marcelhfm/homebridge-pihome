@@ -1,7 +1,8 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 import { PiHomeHomebridgePlatform as PiHomeHomebridgePlatform } from './platform.js';
-import { IMetric } from './accessoryCo2.js';
+import { fetchMetric } from './utils.js';
+
 
 /**
  * Platform Accessory
@@ -39,19 +40,6 @@ export class PiHomePlatformAccessoryIrrigation {
 		  .onGet(this.handleMoistureGet.bind(this));
   }
 
-  async fetchMetric(metric: string): Promise<IMetric | null> {
-    const res = await fetch(this.url + `/api/bridge/datasources/${this.dsId}/${metric}`);
-
-    if (!res.ok) {
-      this.platform.log.error(`Error fetching metric from remote: ${res}`);
-      return null;
-    }
-
-    const timeseries: IMetric = await res.json();
-
-    return timeseries;
-  }
-
   /**
 	 * Handle the "GET" requests from HomeKit
 	 * These are sent when HomeKit wants to know the current state of the accessory, for example, checking if a Light bulb is on.
@@ -66,7 +54,7 @@ export class PiHomePlatformAccessoryIrrigation {
 	 * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
 	 */
   async handleMoistureGet(): Promise<CharacteristicValue> {
-    const timeseries = await this.fetchMetric('moisture');
+    const timeseries = await fetchMetric(this.url, this.dsId, 'moisture', this.platform.log);
 
     const lastMoistureInt = timeseries?.Value || 5000;
     const lastMoisture = lastMoistureInt / 100;

@@ -1,12 +1,6 @@
-
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-
+import { fetchMetric } from './utils.js';
 import { PiHomeHomebridgePlatform as PiHomeHomebridgePlatform } from './platform.js';
-
-export interface IMetric {
-	Value: number;
-	Timestamp: string;
-}
 
 /**
  * Platform Accessory
@@ -17,8 +11,11 @@ export class PiHomePlatformAccessoryCo2 {
   private tempService: Service;
   private humidityService: Service;
   private airQualityService: Service;
+  private switchService: Service;
   private url: string;
   private dsId: number;
+  private displayStatus: bool = false;
+
 
   constructor(
 		private readonly platform: PiHomeHomebridgePlatform,
@@ -43,11 +40,15 @@ export class PiHomePlatformAccessoryCo2 {
 		this.humidityService = this.accessory.getService(this.platform.Service.HumiditySensor)
 			|| this.accessory.addService(this.platform.Service.HumiditySensor, 'Humidity Sensor', 'humidity');
 
+		this.switchService = this.accessory.getService(this.platform.Service.Switch)
+			|| this.accessory.addService(this.platform.Service.Switch, 'Display Switch', 'switch');
+
 
 		// Set Service names
 		this.airQualityService.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.air.displayName);
 		this.tempService.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.temp.displayName);
 		this.humidityService.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.humidity.displayName);
+		this.switchService.setCharacteristic(this.platform.Characteristic.Name, 'Display Switch');
 
 		// Map characteristics
 		this.airQualityService.getCharacteristic(this.platform.Characteristic.AirQuality)
@@ -58,20 +59,12 @@ export class PiHomePlatformAccessoryCo2 {
 
 		this.humidityService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
 		  .onGet(this.handleHumidityGet.bind(this));
+
+		this.switchService.getCharacteristic(this.platform.Characteristic.On)
+		  .onGet(this.handleDisplayGet.bind(this))
+		  .onSet(this.handleDisplaySet.bind(this));
   }
 
-  async fetchMetric(metric: string): Promise<IMetric | null> {
-    const res = await fetch(this.url + `/api/bridge/datasources/${this.dsId}/${metric}`);
-
-    if (!res.ok) {
-      this.platform.log.error(`Error fetching metric from remote: ${res}`);
-      return null;
-    }
-
-    const timeseries: IMetric = await res.json();
-
-    return timeseries;
-  }
 
   /**
 	 * Handle the "GET" requests from HomeKit
@@ -87,7 +80,7 @@ export class PiHomePlatformAccessoryCo2 {
 	 * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
 	 */
   async handleAirQualityGet(): Promise<CharacteristicValue> {
-    const timeseries = await this.fetchMetric('co2');
+    const timeseries = await fetchMetric(this.url, this.dsId, 'co2', this.platform.log);
 
     const lastCo2: number = timeseries?.Value || 0;
 
@@ -111,7 +104,7 @@ export class PiHomePlatformAccessoryCo2 {
   }
 
   async handleTemperatureGet(): Promise<CharacteristicValue> {
-    const timeseries = await this.fetchMetric('temperature');
+    const timeseries = await fetchMetric(this.url, this.dsId, 'temperature', this.platform.log);
 
     const lastTemperature = timeseries?.Value || 0;
 
@@ -120,11 +113,48 @@ export class PiHomePlatformAccessoryCo2 {
   }
 
   async handleHumidityGet(): Promise<CharacteristicValue> {
-    const timeseries = await this.fetchMetric('humidity');
+    const timeseries = await fetchMetric(this.url, this.dsId, 'humidity', this.platform.log);
 
     const lastHumidity = timeseries?.Value || 0;
 
     this.platform.log.debug('Get Humidity->', lastHumidity);
     return lastHumidity;
+  }
+
+  async handleDisplayGet(): Promise<CharacteristicValue> {
+    const timeseries = await fetchMetric(this.url, this.dsId, 'display_status', this.platform.log);
+
+    const displayStatusInt = timeseries?.Value || 0;
+    const displayStatus = Boolean(displayStatusInt);
+    this.displayStatus = displayStatus;
+
+    this.platform.log.debug('Get Display Status->', displayStatus);
+    return displayStatus;
+  }
+
+  async triggerTcpCommand(command: string) {
+    try {
+      const result = await fetch(this.url + `/api/bridge/datasources/${this.dsId}/cmd/${command}`);
+
+      if (!result.ok) {
+        this.platform.log.error(`Error triggering tcp command: ${result}`);
+      }
+
+      const response = await result.text();
+
+      this.platform.log.info(`Successfully triggered tcp command: ${response}`);
+    } catch (e) {
+      this.platform.log.error('Error while triggering tcp command', e);
+    }
+  }
+
+  async handleDisplayStatsuSet() {
+    if (this.displayStatus) {
+      // Turn off display
+      await this.triggerTcpCommand('command_co2_display_off');
+    } else {
+      // Turn on display
+      await this.triggerTcpCommand('command_co2_display_on');
+    }
   }
 }

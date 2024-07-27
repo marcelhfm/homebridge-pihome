@@ -76,22 +76,29 @@ export class PiHomeHomebridgePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
+  async fetchDevices(url: string): Promise<DatasourcesResponse[]> {
+    try {
+      const res = await fetch(url + '/api/bridge/datasources');
+      if (!res.ok) {
+        this.log.error(`Error fetching datasources from remote: ${res}`);
+        return [];
+      }
+
+      const datasources: DatasourcesResponse[] = await res.json();
+      return datasources;
+    } catch (e) {
+      this.log.error(`Error fetching datasoures: url=${url} err=${e}`);
+      return [];
+    }
+  }
+
   /**
 	*		Calls Home Server API to discover available devices
 	*
 	**/
   async discoverDevices(config: PiHomeConfig) {
-    // TODO: Fetch devices from home server
-    const url = config.pihomeApiUrl || 'http://pihome.hofmania.home';
-
-    const res = await fetch(url + '/api/bridge/datasources');
-
-    if (!res.ok) {
-      this.log.error(`Error fetching datasources from remote: ${res}`);
-      return;
-    }
-
-    const datasources: DatasourcesResponse[] = await res.json();
+    const url = config.pihomeApiUrl || 'http://localhost';
+    const datasources = await this.fetchDevices(url);
 
     this.log.info(`Fetched ${datasources.length} from remote.`);
 
