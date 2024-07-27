@@ -14,7 +14,7 @@ export class PiHomePlatformAccessoryCo2 {
   private switchService: Service;
   private url: string;
   private dsId: number;
-  private displayStatus: bool = false;
+  private displayStatus: boolean = false;
 
 
   constructor(
@@ -148,7 +148,7 @@ export class PiHomePlatformAccessoryCo2 {
     }
   }
 
-  async handleDisplayStatsuSet() {
+  async handleDisplaySet() {
     if (this.displayStatus) {
       // Turn off display
       await this.triggerTcpCommand('command_co2_display_off');
