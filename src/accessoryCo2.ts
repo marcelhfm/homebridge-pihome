@@ -142,7 +142,7 @@ export class PiHomePlatformAccessoryCo2 {
 
       const response = await result.text();
 
-      this.platform.log.info(`Successfully triggered tcp command: ${response}`);
+      this.platform.log.info(`Successfully triggered tcp command ${command}: ${response}`);
     } catch (e) {
       this.platform.log.error('Error while triggering tcp command', e);
     }
@@ -152,9 +152,11 @@ export class PiHomePlatformAccessoryCo2 {
     if (this.displayStatus) {
       // Turn off display
       await this.triggerTcpCommand('command_co2_display_off');
+      this.displayStatus = false;
     } else {
       // Turn on display
       await this.triggerTcpCommand('command_co2_display_on');
+      this.displayStatus = true;
     }
   }
 }
