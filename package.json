@@ -1,7 +1,7 @@
 {
   "displayName": "PiHome",
   "name": "homebridge-pihome",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Homebridge plugin to connect iot devices connected to my homeserver to HomeKit",
   "license": "Apache-2.0",
   "type": "module",
