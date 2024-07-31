@@ -56,7 +56,11 @@ export class PiHomePlatformAccessoryIrrigation {
   async handleMoistureGet(): Promise<CharacteristicValue> {
     const timeseries = await fetchMetric(this.url, this.dsId, 'moisture', this.platform.log);
 
-    const lastMoistureInt = timeseries?.Value || 5000;
+    let lastMoistureInt = 5000;
+    if (timeseries?.Value !== null && timeseries?.Value) {
+      lastMoistureInt = timeseries.Value;
+    }
+
     const lastMoisture = lastMoistureInt / 100;
 
     this.platform.log.debug('Get Humidity->', lastMoisture);
