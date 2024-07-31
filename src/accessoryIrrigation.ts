@@ -57,7 +57,7 @@ export class PiHomePlatformAccessoryIrrigation {
     const timeseries = await fetchMetric(this.url, this.dsId, 'moisture', this.platform.log);
 
     let lastMoistureInt = 5000;
-    if (timeseries?.Value !== null && timeseries?.Value) {
+    if (timeseries?.Value !== null && timeseries?.Value !== undefined) {
       lastMoistureInt = timeseries.Value;
     }
 
